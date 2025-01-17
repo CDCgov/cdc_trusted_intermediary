@@ -18,8 +18,8 @@ public class AzureBlobHelper {
         return buildDatePathPrefix(date) + originalName;
     }
 
-    public static boolean isInDateFolder(String blobPath, LocalDate creationDate) {
-        String expectedPath = buildDatePathPrefix(creationDate);
+    public static boolean isInDateFolder(String testType, String blobPath, LocalDate creationDate) {
+        String expectedPath = buildDatePathPrefix(creationDate) + testType;
         return blobPath.startsWith(expectedPath);
     }
 }

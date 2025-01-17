@@ -33,9 +33,10 @@ class AzureBlobHelperTest extends Specification {
     def "isInDateFolder should return true for matching date folder"() {
         given:
         def date = LocalDate.of(2024, 3, 15)
-        def path = "2024/03/15/test.hl7"
+        def path = "2024/03/15/Assertion/test.hl7"
+        def testType = "Assertion/"
 
         expect:
-        AzureBlobHelper.isInDateFolder(path, date)
+        AzureBlobHelper.isInDateFolder(testType, path, date)
     }
 }

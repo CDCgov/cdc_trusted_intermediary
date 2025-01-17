@@ -21,8 +21,8 @@
 ## Routing of these files
 
 To avoid routing issues, we have decided to use `MSH-11` for routing of test messages ([more context here](/adr/026-hl7-test-message-routing.md)). The values we have decided to use are:
-- `D`: for test files **not** to be sent to partners and to be sent manually. Any files under `examples/` and not in `examples/Test/Automated/` should have this value
-- `N`: for test files **not** to be sent to partners and sent by a scheduled task. Any files under `examples/Test/Automated/` should have this value
+- `D`: for test files **not** to be sent to partners and to be sent manually. Any files under `examples/` and not in `examples/Test/Automated/Assertion/` should have this value
+- `N`: for test files **not** to be sent to partners and sent by a scheduled task. Any files under `examples/Test/Automated/Assertion/` should have this value
 - `T`: for test files to be sent manually to partners. `P` will also be routed to partners
 
 **Note**: for some sample files, our transformations **will** rewrite the `MSH-5` and/or `MSH-6` HL7 fields normally used for routing, so we can't rely only on those fields to route. This is the case for most of the files in the `examples/CA` folder. If you are sending any files in that folder and you don't want the message to be delivered to our partner, please make sure `MSH-11` is **not** `T` or `P`. Otherwise the message will be delivered to our partner regardless of what is there in `MSH-5` and `MSH-6`. Please see [this ADR](/adr/026-hl7-test-message-routing.md) for more context
@@ -38,7 +38,7 @@ In order to keep the snapshots up-to-date, we have a script that automates the r
 - The `ORM` messages with ids `003`, `004`, `005`, `006`, `007`, `008`, `009`, `010` in the `Test/Orders` folder were modified to comply with current requirements for ReportStream, as it doesn't yet support HL7 `2.3`:
   - Added `MSH-9.3`
   - Changed `MSH-10` to `2.5.1`
-- The `MSH-11` value for all sample files in `examples/` (with the exception of files in `examples/Test/Automated/`) was changed to `D`. This is to comply with our routing filters in RS for test messages
+- The `MSH-11` value for all sample files in `examples/` (with the exception of files in `examples/Test/Automated/Assertion/`) was changed to `D`. This is to comply with our routing filters in RS for test messages
 
 ## Previously renamed files
 

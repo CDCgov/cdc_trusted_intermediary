@@ -22,10 +22,13 @@ class AutomatedTest extends Specification  {
     HL7FileMatcher fileMatcher
     Logger mockLogger = Mock(Logger)
     List<String> loggedErrorsAndWarnings = []
+    List<String> failedFiles = []
+    FileFetcher azureFileFetcher
+    FileFetcher localFileFetcher
 
     def setup() {
         engine = AssertionRuleEngine.getInstance()
-        fileMatcher =  HL7FileMatcher.getInstance()
+        fileMatcher = HL7FileMatcher.getInstance()
 
         TestApplicationContext.reset()
         TestApplicationContext.init()
@@ -36,6 +39,7 @@ class AutomatedTest extends Specification  {
         TestApplicationContext.register(HL7FileMatcher, fileMatcher)
         TestApplicationContext.register(HealthDataExpressionEvaluator, HL7ExpressionEvaluator.getInstance())
         TestApplicationContext.register(LocalFileFetcher, LocalFileFetcher.getInstance())
+        TestApplicationContext.register(AzureBlobFileFetcher, AzureBlobFileFetcher.getInstance())
         TestApplicationContext.injectRegisteredImplementations()
 
         mockLogger.logWarning(_ as String, _ as Object) >> { String msg, Object args ->
@@ -45,11 +49,9 @@ class AutomatedTest extends Specification  {
             loggedErrorsAndWarnings << msg
         }
 
-        FileFetcher azureFileFetcher = AzureBlobFileFetcher.getInstance()
-        azureFiles = azureFileFetcher.fetchFiles()
+        azureFileFetcher = AzureBlobFileFetcher.getInstance()
+        localFileFetcher = LocalFileFetcher.getInstance()
 
-        FileFetcher localFileFetcher = LocalFileFetcher.getInstance()
-        localFiles = localFileFetcher.fetchFiles()
 
         engine.ensureRulesLoaded()
     }
@@ -62,6 +64,8 @@ class AutomatedTest extends Specification  {
 
     def "test defined assertions on relevant messages"() {
         given:
+        azureFiles = azureFileFetcher.fetchFiles(FileFetcherEnum.ASSERTION)
+        localFiles = localFileFetcher.fetchFiles(FileFetcherEnum.ASSERTION)
         def rulesToEvaluate = engine.getRules()
         def matchedFiles = fileMatcher.matchFiles(azureFiles, localFiles)
 
@@ -75,6 +79,28 @@ class AutomatedTest extends Specification  {
 
         then:
         rulesToEvaluate.collect { it.name }.isEmpty() //Check whether all the rules in the assertions file have been run
+        if (!loggedErrorsAndWarnings.isEmpty()) {
+            throw new AssertionError("Unexpected errors and/or warnings were logged:\n- ${loggedErrorsAndWarnings.join('\n- ')}")
+        }
+    }
+
+    def "test golden copy files on actual files"() {
+        given:
+        azureFiles = azureFileFetcher.fetchFiles(FileFetcherEnum.GOLDEN_COPY)
+        localFiles = localFileFetcher.fetchFiles(FileFetcherEnum.GOLDEN_COPY)
+        def matchedFiles = fileMatcher.matchFiles(azureFiles, localFiles)
+
+        when:
+        for (filePair in matchedFiles) {
+            def actualFile = filePair.getKey()
+            def expectedFile = filePair.getValue()
+            if (actualFile.toString() != expectedFile.toString()) {
+                failedFiles.add(expectedFile.getIdentifier())
+            }
+        }
+
+        then:
+        assert failedFiles.isEmpty()
         if (!loggedErrorsAndWarnings.isEmpty()) {
             throw new AssertionError("Unexpected errors and/or warnings were logged:\n- ${loggedErrorsAndWarnings.join('\n- ')}")
         }

@@ -18,8 +18,8 @@ jobs:
 
       - name: Install jwt-cli
         run: |
-            curl --silent --location https://github.com/mike-engel/jwt-cli/releases/latest/download/jwt-linux.tar.gz | tar xvz -C /usr/local/bin/
-            sudo chmod +x /usr/local/bin/jwt
+          curl --silent --location https://github.com/mike-engel/jwt-cli/releases/latest/download/jwt-linux.tar.gz | tar xvz -C /usr/local/bin/
+          sudo chmod +x /usr/local/bin/jwt
 
       - name: Write private key to file
         run: |
@@ -28,32 +28,55 @@ jobs:
 
       - name: Send HL7 sample messages to staging RS
         run: |
-            host=https://staging.prime.cdc.gov:443
-            client_id=flexion
-            client_sender=simulated-sender
-            jwt=$(jwt encode --exp='+5min' --jti $(uuidgen) --alg RS256 \
-                -k $client_id.$client_sender -i $client_id.$client_sender \
-                -s $client_id.$client_sender -a $host --no-iat -S @/tmp/staging_private_key.pem)
+          shopt -s globstar
+          host=https://staging.prime.cdc.gov:443
+          client_id=flexion
+          client_sender=simulated-sender
+          jwt=$(jwt encode --exp='+5min' --jti $(uuidgen) --alg RS256 \
+              -k $client_id.$client_sender -i $client_id.$client_sender \
+              -s $client_id.$client_sender -a $host --no-iat -S @/tmp/staging_private_key.pem)
 
-            token=$(curl \
-                    --header "Content-Type: application/x-www-form-urlencoded" \
-                    --data "scope=$client_id.*.report" \
-                    --data "client_assertion=$jwt" \
-                    --data "client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer" \
-                    --data "grant_type=client_credentials" \
-                    --silent \
-                    "$host/api/token" | jq -r ".access_token")
+          token=$(curl \
+                  --header "Content-Type: application/x-www-form-urlencoded" \
+                  --data "scope=$client_id.*.report" \
+                  --data "client_assertion=$jwt" \
+                  --data "client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer" \
+                  --data "grant_type=client_credentials" \
+                  --silent \
+                  "$host/api/token" | jq -r ".access_token")
 
-            for file in $(pwd)/examples/Test/Automated/*.hl7; do
-                echo "Sending $file"
-                curl \
-                    --header "Content-Type: application/hl7-v2" \
-                    --header "Client: $client_id.$client_sender" \
-                    --header "Authorization: Bearer $token" \
-                    --data-binary "@$file" \
-                    --silent \
-                    "$host/api/waters"
-            done
+          failed_to_send=""
+          for file in $(pwd)/examples/Test/Automated/{Assertion,GoldenCopy/Input}/*.hl7; do
+              echo "Sending $file"
+              response=$(curl \
+                  --header "Content-Type: application/hl7-v2" \
+                  --header "Client: $client_id.$client_sender" \
+                  --header "Authorization: Bearer $token" \
+                  --data-binary "@$file" \
+                  --silent \
+                  "$host/api/waters" | jq -r ".overallStatus")
+
+              echo "Response to curl: ${response}"
+
+              if [ "$response" != "Received" ]; then
+                failed_to_send+="${file}"$'\n'
+              fi
+          done
+
+          if [ "$failed_to_send" ]; then
+            echo "Issue sending files:"$'\n'"${failed_to_send}"
+            exit 1
+          fi
+
+      - name: Send slack notification on test failure
+        if: failure()
+        uses: slackapi/slack-github-action@v2.0.0
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            text: "Submit Staging RS Integration Test Failed!: https://github.com/CDCgov/trusted-intermediary/actions/runs/${{ github.run_id }}"
+
 
       - name: Clean up private key
         if: always()

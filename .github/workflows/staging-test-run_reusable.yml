@@ -1,0 +1,43 @@
+name: Staging Test - Run integration tests
+
+on:
+  workflow_call:
+    inputs:
+      TEST_TYPE:
+        type: string
+        description: The e2e test to run
+        required: true
+        default: 'automatedTest'
+      NAME:
+        type: string
+        description: The name of test
+        required: true
+        default: 'Automated'
+    secrets:
+        AUTOMATED_TEST_AZURE_STORAGE_CONNECTION_STRING:
+          required: true
+        SLACK_WEBHOOK_URL:
+          required: true
+
+jobs:
+  test_files:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Run automated tests
+        env:
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AUTOMATED_TEST_AZURE_STORAGE_CONNECTION_STRING }}
+        run: |
+          ./gradlew rs-e2e:clean rs-e2e:automatedTest --tests="gov.hhs.cdc.trustedintermediary.rse2e.AutomatedTest.${{inputs.TEST_TYPE}}"
+
+      - name: Send slack notification on test failure
+        if: failure()
+        uses: slackapi/slack-github-action@v2.0.0
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            text: "${{ inputs.NAME }} Staging RS Integration Test Failed!: https://github.com/CDCgov/trusted-intermediary/actions/runs/${{ github.run_id }}"

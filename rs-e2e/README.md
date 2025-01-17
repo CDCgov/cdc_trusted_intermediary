@@ -18,8 +18,10 @@ Information on how to set up the sample files evaluated by the tests can be foun
 
 There are two scheduled tasks that run every weekday around midnight EST:
 
-- [Automated Staging Test - Submit Messages](https://github.com/CDCgov/trusted-intermediary/actions/workflows/automated-staging-test-submit.yml) submits the messages in `/examples/Test/Automated`
-- [Automated Staging Test - Run integration tests](https://github.com/CDCgov/trusted-intermediary/actions/workflows/automated-staging-test-run.yml) triggers a couple of hours later and runs the Automated Tests on the input files in `/examples/Test/Automated` and the output files in the `automated` container for the `cdctiautomatedstg` Azure storage account.
+- [Automated Staging Test - Submit Messages](https://github.com/CDCgov/trusted-intermediary/actions/workflows/automated-staging-test-submit.yml) submits the messages in `/examples/Test/Automated/Assertion/` and `/examples/Test/Automated/GoldenCopy/Expected'
+- [Automated Staging Test - Run integration tests](https://github.com/CDCgov/trusted-intermediary/actions/workflows/automated-staging-test-run.yml) triggers a couple of hours later and runs the Automated Tests on the input files in `/examples/Test/Automated/Assertion/` and the output files in the `automated` container for the `cdctiautomatedstg` Azure storage account.
+- [Automated Staging Test - Run golden copy tests](https://github.com/CDCgov/trusted-intermediary/actions/workflows/golden-copy-staging-test-run.yml) triggers a couple of hours later (about 10 min after assertion test) and runs the Automated Tests on the input files in `/examples/Test/Automated/GoldenCopy/Expected/` and the output files in the `automated` container for the `cdctiautomatedstg` Azure storage account.
+
 
 ### Manually from your local machine
 
@@ -28,7 +30,9 @@ When running locally, we usually run the tests from either the command line usin
 From the command line:
 
 1. Set the `AZURE_STORAGE_CONNECTION_STRING` environment variable in your shell
-2. Run: `./gradlew rs-e2e:clean rs-e2e:automatedTest`
+2. Run one of the following commands for either assertion or golden copy tests:
+ - Run: `./gradlew rs-e2e:clean rs-e2e:automatedTest --tests="gov.hhs.cdc.trustedintermediary.rse2e.AutomatedTest.test defined assertions on relevant messages`
+ - Run: `./gradlew rs-e2e:clean rs-e2e:automatedTest --tests="gov.hhs.cdc.trustedintermediary.rse2e.AutomatedTest.test golden copy files on actual files`
 
 From IntelliJ:
 
@@ -39,7 +43,7 @@ From IntelliJ:
 
 1. Run the [Automated Staging Test - Submit Messages](https://github.com/CDCgov/trusted-intermediary/actions/workflows/automated-staging-test-submit.yml) action
 2. Wait for RS and TI to finish processing files
-3. Run the [Automated Staging Test - Run integration tests](https://github.com/CDCgov/trusted-intermediary/actions/workflows/automated-staging-test-run.yml) action
+3. Run the [Automated Staging Test - Run integration tests](https://github.com/CDCgov/trusted-intermediary/actions/workflows/automated-staging-test-run.yml) action OR [Automated Staging Test - Run integration tests](https://github.com/CDCgov/trusted-intermediary/actions/workflows/golden-copy-staging-test-run.yml)
 
 #### Testing a branch
 
@@ -52,6 +56,8 @@ If you have added new assertion rules to the [assertion_definitions.json](/rs-e2
 Instead of running the `Run integration tests` action, you could also test it from your local machine by following the steps in the previous section.
 
 **Note**: when testing a branch with new assertions, it's recommended to make sure the assertions fail as a gut check.
+
+# Assertion Tests
 
 ## Assertions Definition
 
@@ -90,3 +96,9 @@ Examples:
   - `"MSH-6 in ('R797', 'R508')"` - the value of `MSH-6` in the output file is either `R797` or `R508`
 - Segment count
   - `"OBR.count() = 1"` - there is only one `OBR` segment in the file
+
+# Golden Copy Tests
+
+### Structure
+
+For each golden copy test added, it must include an input file that will be submitted through the workflow and an expected file that will be compared to the output of the workflow.

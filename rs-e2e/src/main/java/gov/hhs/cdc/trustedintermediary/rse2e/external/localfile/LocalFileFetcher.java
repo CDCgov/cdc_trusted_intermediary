@@ -1,6 +1,7 @@
 package gov.hhs.cdc.trustedintermediary.rse2e.external.localfile;
 
 import gov.hhs.cdc.trustedintermediary.rse2e.FileFetcher;
+import gov.hhs.cdc.trustedintermediary.rse2e.FileFetcherEnum;
 import gov.hhs.cdc.trustedintermediary.rse2e.hl7.HL7FileStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,8 +16,6 @@ import java.util.stream.Stream;
  * represents a file fetcher that fetches files from the local file system.
  */
 public class LocalFileFetcher implements FileFetcher {
-
-    private static final String FILES_PATH = "../examples/Test/Automated/";
     private static final String EXTENSION = "hl7";
 
     private static final FileFetcher INSTANCE = new LocalFileFetcher();
@@ -28,8 +27,14 @@ public class LocalFileFetcher implements FileFetcher {
     }
 
     @Override
-    public List<HL7FileStream> fetchFiles() {
-        try (Stream<Path> stream = Files.walk(Paths.get(FILES_PATH))) {
+    public List<HL7FileStream> fetchFiles(FileFetcherEnum fileFetcherEnum) {
+        String rse2ELocalInputFilePath = "../examples/Test/Automated/";
+        if (FileFetcherEnum.ASSERTION == fileFetcherEnum) {
+            rse2ELocalInputFilePath += "Assertion/";
+        } else {
+            rse2ELocalInputFilePath += "GoldenCopy/Expected/";
+        }
+        try (Stream<Path> stream = Files.walk(Paths.get(rse2ELocalInputFilePath))) {
             return stream.filter(Files::isRegularFile)
                     .filter(path -> path.toString().endsWith(EXTENSION))
                     .map(

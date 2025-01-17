@@ -14,7 +14,7 @@ DB_PORT=5433      # if you run TI via docker: DB_PORT=5432
 DB_NAME=intermediary
 DB_USER=intermediary
 DB_PASS=changeIT!
-DB_SSL=require"
+DB_SSL=require
 
 # Get directory of script file
 script_dir="$(dirname "$0")"

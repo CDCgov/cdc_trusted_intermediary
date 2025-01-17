@@ -9,7 +9,7 @@ Date: 2024-10-02
 2. We decided to create Github Action workflows to schedule two tasks:
    - One workflow submits sample HL7 files to ReportStream in staging, with output files expected to be delivered to an Azure blob container
    - Another workflow later runs the integration tests on the output and input files
-3. We decided to use MSH-10 to match the input and output files, and to filter the receivers in ReportStream when MSH-6.2 not available.
+3. We decided to use MSH-10 to match the input and output files, and to filter the receivers in ReportStream when MSH-6.2 not available, and MSH-3 to distinguish between our golden copy and assertion tests.
 
 ## Status
 
@@ -40,7 +40,7 @@ built in extra time in case of any issues that cause delays.
 
 ### Decision 3
 
-We're using the value in MSH-10 for two purposes: matching input and output files, and some filtering in RS.
+We're using the value in MSH-10 for two purposes: matching input and output files, and some filtering in RS. We use MSH-3 for a similar reason, specifically for filtering and renaming the file to include a flag.
 
 We chose MSH-10 to match files on because it's a value that shouldn't change and should be unique to
 a particular message. We're also using it to route these test messages because in some cases, we apply
